@@ -1,0 +1,39 @@
+name: Daily practice
+
+on:
+  schedule:
+    - cron: "30 3 * * *"   # every day at 03:30 UTC; change to suit you
+  workflow_dispatch:        # lets you run it manually to test
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install anthropic
+
+      - name: Generate today's exercise
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python scripts/generate.py
+
+      - name: Commit and push
+        run: |
+          git config user.name "${{ github.repository_owner }}"
+          git config user.email "${{ secrets.COMMIT_EMAIL }}"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -F /tmp/commit_msg.txt
+            git push
+          fi
